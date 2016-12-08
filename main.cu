@@ -31,7 +31,7 @@ void concurrent_all(double* array, int n){
 	h_mean = (double*)malloc(sizeof(double));
 	h_min = (double*)malloc(sizeof(double));
 
-	cout<<"overflow3"<<endl;
+
 
 	double *d_max;
 	double *d_min;
@@ -53,7 +53,7 @@ void concurrent_all(double* array, int n){
 	cudaMemset(d_mean, 0, sizeof(double));
 	cudaMemset(d_mutex, 0, sizeof(int));
 
-	cout<<"overflow4"<<endl;
+
 
 	cudaMemcpy(d_array, array, n*sizeof(double), cudaMemcpyHostToDevice);
 
@@ -66,29 +66,27 @@ void concurrent_all(double* array, int n){
 	dim3 blockSize = 256;
 	cudaEventRecord(gpu_start, 0);
 
-	cout<<"overflow5"<<endl;
 
+	cout<<"--------GPU version concurrent------------"<<endl;
 	concurrent_kernel<<<gridSize, blockSize>>>(d_array, d_max, d_min, d_mean, d_mutex, n);
 	cudaMemcpy(h_mean, d_mean, sizeof(double), cudaMemcpyDeviceToHost);
-		cout<<"overflow6"<<endl;
+
 	*h_mean = *h_mean / n;
 	std_kernel<<<gridSize, blockSize>>>(d_array, d_std, d_mutex, n, *h_mean);
-
-		cout<<"overflow7"<<endl;
 	cudaMemcpy(h_std, d_std, sizeof(double), cudaMemcpyDeviceToHost);
-	*d_std = sqrt(*d_std/n);
+	*h_std = sqrt(*h_std/n);
 	cudaEventRecord(gpu_stop, 0);
 	cudaEventSynchronize(gpu_stop);
 	cudaEventElapsedTime(&gpu_elapsed_time, gpu_start, gpu_stop);
 	cudaEventDestroy(gpu_start);
 	cudaEventDestroy(gpu_stop);
-			cout<<"overflow8"<<endl;
+
 	cudaMemcpy(h_max, d_max, sizeof(double), cudaMemcpyDeviceToHost);
 	cudaMemcpy(h_min, d_min, sizeof(double), cudaMemcpyDeviceToHost);
 	//cudaMemcpy(h_std, d_std, sizeof(double), cudaMemcpyDeviceToHost);
 
-	std::cout<<"max "<<h_max<<" min "<<h_min<<" mean "<<h_mean << " Stand d "<< h_std<<endl;
-	std::cout<<"array size "<< n<<" time "<<gpu_elapsed_time<<endl;
+	std::cout<<"max "<<h_max<<" min "<<h_min<<" mean "<<h_mean << " Stand_d: "<< h_std<<endl;
+	std::cout<<"array size "<< n <<" time "<<gpu_elapsed_time<<endl;
 
 	//cpu version
 	cout<<"-----------cpu Version concurrent---------------------"<<endl;
@@ -122,7 +120,12 @@ void concurrent_all(double* array, int n){
 
 int main(int argc, char *argv[]) {
 	//set the total number
-	int totalNum = 50 * 1000 * 1000;
+	int totalNum = 0;
+	if(argc < 2){
+		totalNum = 50 * 1000 * 1000;
+	}else {
+		totalNum =atoi(argv[1]);
+	}
 	double *d_array;
 	double *d_max;
 	int *d_mutex;
@@ -220,7 +223,7 @@ int main(int argc, char *argv[]) {
 	cudaEventElapsedTime(&gpu_elapased_time, gpu_start, gpu_stop);
 
 	std::cout << "size of arrays " << totalNum << endl;
-	std::cout << "Minimun number found on gpu was: " << *h_min << std::endl;
+	std::cout << "the gpu min number was: " << *h_min << std::endl;
 
 	cout<<" gpu time " << gpu_elapased_time << endl;
 
@@ -233,14 +236,14 @@ int main(int argc, char *argv[]) {
 	double minimum = nums[0];
 	cpu_start = clock();
 	for (int i = 0; i < totalNum; i++) {
-		if (maxNum < nums[i]) {
-			maxNum = nums[i];
+		if (minimum < nums[i]) {
+			minimum = nums[i];
 		}
 	}
 	cpu_stop = clock();
 	cpu_elapsed_time = 1000*(cpu_stop - cpu_start)/CLOCKS_PER_SEC;
 	cout << "cpu time " << cpu_elapsed_time << endl;
-	cout << "the cpu max number is " << minimum << endl;
+	cout << "the cpu min number is " << minimum << endl;
 
 
 		printf("--------- arithmetic mean-------------------\n");
@@ -334,7 +337,7 @@ int main(int argc, char *argv[]) {
 		free(h_std);
 		free(h_mean);
 		//free gpu
-	cout<<"overflow1"<<endl;
+
 
 	cudaFree(d_max);
 	cudaFree(d_min);
@@ -342,7 +345,7 @@ int main(int argc, char *argv[]) {
 	cudaFree(d_mean);
 	cudaFree(d_array);
 
-	cout<<"overflow2"<<endl;
+
 
 	concurrent_all(nums, totalNum);
 

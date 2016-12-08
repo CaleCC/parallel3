@@ -31,6 +31,7 @@ void concurrent_all(double* array, int n){
 	h_mean = (double*)malloc(sizeof(double));
 	h_min = (double*)malloc(sizeof(double));
 
+	cout<<"overflow3"<<endl;
 
 	double *d_max;
 	double *d_min;
@@ -52,6 +53,8 @@ void concurrent_all(double* array, int n){
 	cudaMemset(d_mean, 0, sizeof(double));
 	cudaMemset(d_mutex, 0, sizeof(int));
 
+	cout<<"overflow4"<<endl;
+
 	cudaMemcpy(d_array, array, n*sizeof(double), cudaMemcpyHostToDevice);
 
 	float gpu_elapsed_time;
@@ -62,10 +65,16 @@ void concurrent_all(double* array, int n){
 	dim3 gridSize = 256;
 	dim3 blockSize = 256;
 	cudaEventRecord(gpu_start, 0);
+
+	cout<<"overflow5"<<endl;
+
 	concurrent_kernel<<<gridSize, blockSize>>>(d_array, d_max, d_min, d_mean, d_mutex, n);
 	cudaMemcpy(h_mean, d_mean, sizeof(double), cudaMemcpyDeviceToHost);
+		cout<<"overflow6"<<endl;
 	*h_mean = *h_mean / n;
 	std_kernel<<<gridSize, blockSize>>>(d_array, d_std, d_mutex, n, *h_mean);
+
+		cout<<"overflow7"<<endl;
 	cudaMemcpy(h_std, d_std, sizeof(double), cudaMemcpyDeviceToHost);
 	*d_std = sqrt(*d_std/n);
 	cudaEventRecord(gpu_stop, 0);
@@ -73,6 +82,7 @@ void concurrent_all(double* array, int n){
 	cudaEventElapsedTime(&gpu_elapsed_time, gpu_start, gpu_stop);
 	cudaEventDestroy(gpu_start);
 	cudaEventDestroy(gpu_stop);
+			cout<<"overflow8"<<endl;
 	cudaMemcpy(h_max, d_max, sizeof(double), cudaMemcpyDeviceToHost);
 	cudaMemcpy(h_min, d_min, sizeof(double), cudaMemcpyDeviceToHost);
 	//cudaMemcpy(h_std, d_std, sizeof(double), cudaMemcpyDeviceToHost);
@@ -147,7 +157,7 @@ int main(int argc, char *argv[]) {
 
 
 	//call kernel
-	printf("---------GPU version find max-------------------\n");
+	printf("---------find max-------------------\n");
 
 	cudaEventRecord(gpu_start, 0);
 	find_maximum_kernel <<<gridSize, blockSize>>>(d_array, d_max, d_mutex, totalNum);
@@ -160,15 +170,15 @@ int main(int argc, char *argv[]) {
 	cudaEventElapsedTime(&gpu_elapased_time, gpu_start, gpu_stop);
 	cudaEventDestroy(gpu_start);
 	cudaEventDestroy(gpu_stop);
-
-	std::cout << "Maximum number fouind on gpu was: " << *h_max << std::endl;
-	std::cout << "size of arrays " << totalNum << " time " << gpu_elapased_time << endl;
+	std::cout << "size of arrays " << totalNum <<endl;
+	std::cout << "Maximum number on gpu was: " << *h_max << std::endl;
+	cout<<"GPU time " << gpu_elapased_time << endl;
 
 
 
 
 	//cpu version
-	printf("------------CPU version find the maximum---------------\n");
+	//printf("------------CPU version find the maximum---------------\n");
 	clock_t cpu_start = clock();
 	double maxNum = nums[0];
 	for (int i = 0; i < totalNum; i++) {
@@ -178,12 +188,12 @@ int main(int argc, char *argv[]) {
 	}
 	clock_t cpu_stop = clock();
 	clock_t cpu_elapsed_time = 1000*(cpu_stop - cpu_start)/CLOCKS_PER_SEC;
-	cout << "size of arrays " << totalNum << " time " << cpu_elapsed_time << endl;
-	cout << "the max number is " << maxNum << endl;
+	cout << "CPU time " << cpu_elapsed_time << endl;
+	cout << "the cpu max number is " << maxNum << endl;
 
 
 
-	printf("---------GPU version find min-------------------\n");
+	printf("---------find min-------------------\n");
 	//allocate memory space for the random numbers
 	double* h_min;
 	h_min = (double*)malloc(sizeof(double));
@@ -209,14 +219,16 @@ int main(int argc, char *argv[]) {
 	cudaEventSynchronize(gpu_stop);
 	cudaEventElapsedTime(&gpu_elapased_time, gpu_start, gpu_stop);
 
+	std::cout << "size of arrays " << totalNum << endl;
 	std::cout << "Minimun number found on gpu was: " << *h_min << std::endl;
-	std::cout << "size of arrays " << totalNum << " time " << gpu_elapased_time << endl;
+
+	cout<<" gpu time " << gpu_elapased_time << endl;
 
 
 
 
 	//cpu version
-	printf("------------CPU version find the minimun---------------\n");
+	//printf("------------CPU version find the minimun---------------\n");
 	//gettimeofday(&start, NULL);
 	double minimum = nums[0];
 	cpu_start = clock();
@@ -227,11 +239,11 @@ int main(int argc, char *argv[]) {
 	}
 	cpu_stop = clock();
 	cpu_elapsed_time = 1000*(cpu_stop - cpu_start)/CLOCKS_PER_SEC;
-	cout << "size of arrays " << totalNum << " time " << cpu_elapsed_time << endl;
-	cout << "the max number is " << minimum << endl;
+	cout << "cpu time " << cpu_elapsed_time << endl;
+	cout << "the cpu max number is " << minimum << endl;
 
 
-		printf("---------GPU version arithmetic mean-------------------\n");
+		printf("--------- arithmetic mean-------------------\n");
 		//allocate memory space for the random numbers
 		double* h_mean;
 		h_mean = (double*)malloc(sizeof(double));
@@ -260,13 +272,14 @@ int main(int argc, char *argv[]) {
 		cudaEventDestroy(gpu_stop);
 		*h_mean = *h_mean/totalNum;
 		std::cout << "mean of the array calculate by gpu was: " << *h_mean<< std::endl;
-		std::cout << "size of arrays " << totalNum << " time " << gpu_elapased_time << endl;
+		std::cout << "size of arrays " << totalNum << endl;
+		cout<<"Gpu time " << gpu_elapased_time << endl;
 
 
 
 
 		//cpu version
-		printf("------------CPU version find the arithmetic mean---------------\n");
+		//printf("------------CPU version find the arithmetic mean---------------\n");
 		//gettimeofday(&start, NULL);
 		double mean = nums[0];
 		cpu_start = clock();
@@ -276,7 +289,7 @@ int main(int argc, char *argv[]) {
 		mean = mean/totalNum;
 		cpu_stop = clock();
 		cpu_elapsed_time = 1000*(cpu_stop - cpu_start)/CLOCKS_PER_SEC;
-		cout << "size of arrays " << totalNum << " time " << cpu_elapsed_time << endl;
+		cout << "cpu time " << cpu_elapsed_time << endl;
 		cout << "the  mean is " << mean << endl;
 
 		//GPU version std
@@ -298,10 +311,10 @@ int main(int argc, char *argv[]) {
 		cudaEventDestroy(gpu_stop);
 		*h_std = sqrt(*h_std/totalNum);
 		std::cout<<"GPU std is " << *h_std<<endl;
-		std::cout<<"the gpu took: "<<gpu_elapased_time<<endl;
+		std::cout<<"GPU time "<<gpu_elapased_time<<endl;
 
 		//run the cpu version std
-		printf("------------CPU version find the STD---------------\n");
+		//printf("------------CPU version find the STD---------------\n");
 		//gettimeofday(&start, NULL);
 		double stand_d= 0;
 		cpu_start = clock();
@@ -312,7 +325,7 @@ int main(int argc, char *argv[]) {
 		stand_d = sqrt(stand_d);
 		cpu_stop = clock();
 		cpu_elapsed_time = 1000*(cpu_stop - cpu_start)/CLOCKS_PER_SEC;
-		cout << "size of arrays " << totalNum << " time " << cpu_elapsed_time << endl;
+		cout << "CPU time " << cpu_elapsed_time << endl;
 		cout << "the  stand deviation is " << stand_d << endl;
 
 		//free the numbers
@@ -321,12 +334,15 @@ int main(int argc, char *argv[]) {
 		free(h_std);
 		free(h_mean);
 		//free gpu
+	cout<<"overflow1"<<endl;
 
 	cudaFree(d_max);
 	cudaFree(d_min);
 	cudaFree(d_std);
 	cudaFree(d_mean);
 	cudaFree(d_array);
+
+	cout<<"overflow2"<<endl;
 
 	concurrent_all(nums, totalNum);
 

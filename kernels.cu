@@ -20,7 +20,7 @@ __global__ void find_maximum_kernel(double *array, double *max, int *mutex, int 
 
 
   //reduction
-  unsigned int i = gridDim.x/2;
+  unsigned int i = blockDim.x/2;
   while(i != 0){
     if(threadIdx.x < i){
       cache[threadIdx.x] = fmax(cache[threadIdx.x], cache[threadIdx.x + i]);
@@ -56,7 +56,7 @@ __global__ void find_minimum_kernel(double *array, double *min, int *mutex, int 
 
 
   //reduction
-  unsigned int i = gridDim.x/2;
+  unsigned int i = blockDim.x/2;
   while(i != 0){
     if(threadIdx.x < i){
       cache[threadIdx.x] = fmin(cache[threadIdx.x], cache[threadIdx.x + i]);
@@ -102,7 +102,7 @@ __global__ void mean_kernel(double *array, double *mean, int *mutex, int n){
   //   __syncthreads();
   //   i /= 2;
   // }
-  unsigned int i = gridDim.x / 2;
+  unsigned int i = blockDim.x / 2;
   while(i != 0){
     if(threadIdx.x < i){
       cache[threadIdx.x] += cache[threadIdx.x + i];
@@ -140,7 +140,7 @@ __global__ void std_kernel(double *array, double* d_std, int *mutex, int n, doub
 
   //reduction
   // }
-  unsigned int i = gridDim.x / 2;
+  unsigned int i = blockDim.x / 2;
   while(i != 0){
     if(threadIdx.x < i){
       cache[threadIdx.x] += cache[threadIdx.x + i];
@@ -158,7 +158,7 @@ __global__ void std_kernel(double *array, double* d_std, int *mutex, int n, doub
 
 }
 
-__global__ void concurrent_kernel(double array,double* max,double* min, double *mean, int *mutex, int n){
+__global__ void concurrent_kernel(double* array,double* max,double* min, double *mean, int *mutex, int n){
   unsigned int index = threadIdx.x + blockIdx.x*gridDim.x;
   unsigned int stride = gridDim.x * blockDim.x;
   unsigned int offset = 0;
@@ -169,7 +169,7 @@ __global__ void concurrent_kernel(double array,double* max,double* min, double *
 
   double temp_max = array[0];
   double temp_min = array[0];
-  double temo_mean = 0;
+  double temp_mean = 0;
   while(index + offset < n){
     temp_max = fmax(temp_max, array[index + offset]);
     temp_min = fmin(temp_min,array[index + offset]);
@@ -178,14 +178,14 @@ __global__ void concurrent_kernel(double array,double* max,double* min, double *
   }
 
   cache_max[threadIdx.x] = temp_max;
-  cahce_min[threadIdx.x] = temp_min;
+  cache_min[threadIdx.x] = temp_min;
   cache_mean[threadIdx.x] = temp_mean;
 
   __syncthreads();
 
 
   //reduction
-  unsigned int i = gridDim.x/2;
+  unsigned int i = blockDim.x/2;
   while(i != 0){
     if(threadIdx.x < i){
       cache_max[threadIdx.x] = fmax(cache_max[threadIdx.x], cache_max[threadIdx.x + i]);

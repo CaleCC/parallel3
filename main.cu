@@ -20,7 +20,7 @@ int randNum() {
 //   return (endInuSec - startInuSec)/1000000.0;
 // }
 
-void concurrent_all(double array, int n){
+void concurrent_all(double* array, int n){
 	double *h_max;
 	double *h_std;
 	double *h_mean;
@@ -30,6 +30,7 @@ void concurrent_all(double array, int n){
 	h_std = (double*)malloc(sizeof(double));
 	h_mean = (double*)malloc(sizeof(double));
 	h_min = (double*)malloc(sizeof(double));
+
 
 	double *d_max;
 	double *d_min;
@@ -43,6 +44,7 @@ void concurrent_all(double array, int n){
 	cudaMalloc((void**)&d_mean, sizeof(double));
 	cudaMalloc((void**)&d_std, sizeof(double));
 	cudaMalloc((void**)&d_array, n*sizeof(double));
+	cudaMalloc((void**)&d_mutex, sizeof(int));
 
 	cudaMemset(d_max, 0, sizeof(double));
 	cudaMemset(d_min, 0, sizeof(double));
@@ -50,9 +52,9 @@ void concurrent_all(double array, int n){
 	cudaMemset(d_mean, 0, sizeof(double));
 	cudaMemset(d_mutex, 0, sizeof(int));
 
-	cudaMemcpy(d_array, h_array, N*size(double), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_array, array, n*sizeof(double), cudaMemcpyHostToDevice);
 
-	double gpu_elapsed_time;
+	float gpu_elapsed_time;
 	cudaEvent_t gpu_start, gpu_stop;
 	cudaEventCreate(&gpu_start);
 	cudaEventCreate(&gpu_stop);
@@ -101,6 +103,10 @@ void concurrent_all(double array, int n){
 
 	std::cout<<"max "<<max<<" min "<<min<<" mean "<<mean << " Stand d "<<standDeviation<<endl;
 	std::cout<<"array size "<< n<<" time "<<cpu_elapsed_time<<endl;
+	cudaFree(d_array);
+	cudaFree(d_max);
+	cudaFree(d_mutex);
+	free(array);
 
 }
 
@@ -277,8 +283,8 @@ int main(int argc, char *argv[]) {
 		printf("-----------------GPU version STD--------------------\n");
 		double *h_std = (double*)malloc(sizeof(double));
 		double *d_std;
-		cudaMalloc((void**)&d_std, size(double));
-		cudaMemset(d_std, 0, sizepf(double));
+		cudaMalloc((void**)&d_std, sizeof(double));
+		cudaMemset(d_std, 0, sizeof(double));
 		cudaEventCreate(&gpu_start);
 		cudaEventCreate(&gpu_stop);
 
@@ -320,7 +326,8 @@ int main(int argc, char *argv[]) {
 	cudaFree(d_min);
 	cudaFree(d_std);
 	cudaFree(d_mean);
+	cudaFree(d_array);
 
-	concurrent_all(h_array, totalNum);
+	concurrent_all(nums, totalNum);
 
 }

@@ -81,13 +81,13 @@ void concurrent_all(double* array, int n){
 
 	find_minimum_kernel<<<gridSize, blockSize, 0, stream2>>>(d_array, d_min, d_mutex1, n);
 
-	mean_kernel<<<gridSize, blockIdx, 0, stream3>>>(d_array, d_mean, d_mutex2, n);
+	mean_kernel<<<gridSize, blockSize, 0, stream3>>>(d_array, d_mean, d_mutex2, n);
 
 	cudaMemcpy(h_mean, d_mean, sizeof(double), cudaMemcpyDeviceToHost);
 
 	*h_mean = *h_mean / n;
 
-	std_kernel<<<gridSize, blockIdx, 0 , stream3>>>(d_array, d_std, d_mutex2, n, *h_mean);
+	std_kernel<<<gridSize, blockSize, 0 , stream3>>>(d_array, d_std, d_mutex2, n, *h_mean);
 
 	cudaMemcpy(h_std, d_std, sizeof(double), cudaMemcpyDeviceToHost);
 

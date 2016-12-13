@@ -30,7 +30,8 @@ void concurrent_all(double* array, int n){
 	h_std = (double*)malloc(sizeof(double));
 	h_mean = (double*)malloc(sizeof(double));
 	h_min = (double*)malloc(sizeof(double));
-
+	dim3 gridSize = 256;
+	dim3 blockSize = 256;
 
 
 	double *d_max;
@@ -38,22 +39,26 @@ void concurrent_all(double* array, int n){
 	double *d_mean;
 	double *d_std;
 	double *d_array;
-	int *d_mutex;
+	int *d_mutex,*d_mutex1, *d_mutex2;
 	//cudaMalloc((void**)&d_array, n*sizeof(double));
 	cudaMalloc((void**)&d_max, sizeof(double));
 	cudaMalloc((void**)&d_min, sizeof(double));
 	cudaMalloc((void**)&d_mean, sizeof(double));
 	cudaMalloc((void**)&d_std, sizeof(double));
 	cudaMalloc((void**)&d_array, n*sizeof(double));
-	cudaMalloc((void**)&d_mutex, sizeof(int));
+
+
 
 	cudaMemset(d_max, 0, sizeof(double));
 	cudaMemset(d_min, 0, sizeof(double));
 	cudaMemset(d_std, 0, sizeof(double));
 	cudaMemset(d_mean, 0, sizeof(double));
+	cudaMalloc((void**)&d_mutex, sizeof(int));
 	cudaMemset(d_mutex, 0, sizeof(int));
-
-
+	cudaMalloc((void**)&d_mutex1, sizeof(int));
+	cudaMemset(d_mutex1, 0, sizeof(int));
+	cudaMalloc((void**)&d_mutex2, sizeof(int));
+	cudaMemset(d_mutex2, 0, sizeof(int));
 
 	cudaMemcpy(d_array, array, n*sizeof(double), cudaMemcpyHostToDevice);
 
@@ -62,24 +67,43 @@ void concurrent_all(double* array, int n){
 	cudaEventCreate(&gpu_start);
 	cudaEventCreate(&gpu_stop);
 
-	dim3 gridSize = 256;
-	dim3 blockSize = 256;
+
+
+	cudaStream_t stream1,stream2,stream3;
+	cudaStreamCreate(&stream1);
+	cudaStreamCreate(&stream2);
+	cudaStreamCreate(&stream3);
 	cudaEventRecord(gpu_start, 0);
 
 
 	cout<<"--------GPU version concurrent------------"<<endl;
-	concurrent_kernel<<<gridSize, blockSize>>>(d_array, d_max, d_min, d_mean, d_mutex, n);
+	find_maximum_kernel<<<gridSize, blockSize, 0, stream1>>>(d_array, d_max, d_mutex, n);
+
+	find_minimum_kernel<<<gridSize, blockSize, 0, stream2>>>(d_array, d_min, d_mutex1, n);
+
+	mean_kernel<<<gridSize, blockIdx, 0, stream3>>>(d_array, d_mean, d_mutex2, n);
+
 	cudaMemcpy(h_mean, d_mean, sizeof(double), cudaMemcpyDeviceToHost);
 
 	*h_mean = *h_mean / n;
-	std_kernel<<<gridSize, blockSize>>>(d_array, d_std, d_mutex, n, *h_mean);
+
+	std_kernel<<<gridSize, blockIdx, 0 , stream3>>>(d_array, d_std, d_mutex2, n, *h_mean);
+
 	cudaMemcpy(h_std, d_std, sizeof(double), cudaMemcpyDeviceToHost);
+
 	*h_std = sqrt(*h_std/n);
+	//concurrent_kernel<<<gridSize, blockSize>>>(d_array, d_max, d_min, d_mean, d_mutex, n);
+	//cudaMemcpy(h_mean, d_mean, sizeof(double), cudaMemcpyDeviceToHost);
 	cudaEventRecord(gpu_stop, 0);
 	cudaEventSynchronize(gpu_stop);
 	cudaEventElapsedTime(&gpu_elapsed_time, gpu_start, gpu_stop);
 	cudaEventDestroy(gpu_start);
 	cudaEventDestroy(gpu_stop);
+
+
+  cudaStreamDestroy(stream1);
+	cudaStreamDestroy(stream2);
+	cudaStreamDestroy(stream3);
 
 	cudaMemcpy(h_max, d_max, sizeof(double), cudaMemcpyDeviceToHost);
 	cudaMemcpy(h_min, d_min, sizeof(double), cudaMemcpyDeviceToHost);
